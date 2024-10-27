@@ -1,0 +1,17 @@
+[package]
+name = "sstm-daily-login-reward"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chrono = "0.4.38"
+dotenv = "0.15.0"
+thirtyfour = "0.34.0"
+tokio = { version = "1", features = [
+    "rt",
+    "macros",
+    "time",
+    "io-util",
+    "sync",
+    "rt-multi-thread"
+] }
