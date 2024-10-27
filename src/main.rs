@@ -158,7 +158,13 @@ async fn main() -> Result<(), WebDriverError> {
     // 3. end
     sleep(Duration::from_secs(5)).await;
     driver.quit().await?;
-    end_chromedriver(chromedriver_process)
+    let result = end_chromedriver(chromedriver_process);
+    
+    // 按任意键退出
+    println!("按任意键退出...");
+    let _ = std::io::stdin().read_line(&mut String::new());
+
+    result
 }
 
 fn start_chromedriver(chromedriver_path: &str, chromedriver_port: u32) -> std::process::Child {
