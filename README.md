@@ -6,9 +6,9 @@
       *  Downloaded from https://googlechromelabs.github.io/chrome-for-testing/#stable
    *  etc (Details in `Cargo.toml`)
 *  **How to use?**
-   1. Rename `.env.template` to `.env`
-   2. Fill `.env` file
-   3. Download `chromedriver.exe` and put it in `./bin/` folder
+   1. Download `chromedriver.exe` and put it in `./bin/` folder
+   2. Rename `.env.template` to `.env`
+   3. Fill `.env` file
    4. Start this tool by `cargo run`
 * Optional
   * Add it to `Windows任务计划程序`

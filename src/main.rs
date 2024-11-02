@@ -126,6 +126,10 @@ async fn main() -> Result<(), WebDriverError> {
     reply_input.send_keys(reply_content).await?;
     println!("=> Successfully 输入回复信息.");
 
+    // 将页面滚动到底部
+    driver.execute("window.scrollTo(0, document.body.scrollHeight);", vec![]).await?;
+    sleep(Duration::from_secs(wait_time)).await;
+
     let reply_button = driver.find(By::Css("#comments > div.cTopicPostArea.ipsBox.ipsResponsive_pull.ipsPadding.ipsSpacer_top > form > div > div.ipsComposeArea_editor > ul > li:nth-child(2) > button")).await?;
     reply_button.click().await?;
     println!("=> Successfully 点击回复按钮.");
