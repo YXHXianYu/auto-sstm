@@ -1,5 +1,5 @@
 use std::{env, process::Command, time::Duration};
-use chrono::{Datelike, Local};
+use chrono::{Datelike, Days, Local};
 use thirtyfour::{error::WebDriverErrorInfo, prelude::*};
 use dotenv::dotenv;
 use tokio::time::sleep;
@@ -76,18 +76,16 @@ async fn main() -> Result<(), WebDriverError> {
         let _ = goto_url!(profile_url.as_str());
         let jiecao_element = driver.find(By::Css("#elProfileInfoColumn > div > div:nth-child(4) > div > ul > li:nth-child(1) > span.ipsDataItem_main")).await?;
         let jiecao_text = jiecao_element.text().await?;
+        println!("=> Current 节操 text: {}", jiecao_text);
         // 去除text末尾的" J"
-        let jiecao_text = jiecao_text.trim_end_matches(" J");
+        let jiecao_text = jiecao_text.trim_end_matches(" J").replace(",", "");
         let jiecao = jiecao_text.parse::<f32>().unwrap_or(-1.0);
+        println!("=> Current 节操 is {}.", jiecao);
         jiecao
     } else {
+        println!("=> 没有设置SSTM_PROFILE_URL，无法获取当前节操。");
         -1.0
     };
-    if current_jiecao >= 0.0 {
-        println!("=> Current 节操 is {}.", current_jiecao);
-    } else {
-        println!("=> 没有设置SSTM_PROFILE_URL，无法获取当前节操。");
-    }
     
     // go to the forum page
     let result = goto_url!("https://sstm.moe/forum/72-%E5%90%8C%E7%9B%9F%E7%AD%BE%E5%88%B0%E5%8C%BA/");
@@ -97,15 +95,29 @@ async fn main() -> Result<(), WebDriverError> {
     }
 
     // get time to locate the latest post
-    let year = Local::now().year();
-    let month = Local::now().month();
-    let day = Local::now().day();
-    let target_string = format!("【{}/{}/{}】", year, month, day);
-    let target_css_selector = format!("a[title*='{}']", target_string);
-    println!("=> Target string (today date): {}", target_string);
+
+    let get_date_css_selector = |date: chrono::NaiveDate| -> (String, String) {
+        let target_string = format!("【{}/{}/{}】", date.year(), date.month(), date.day());
+        println!("=> Target string (today date): {}", target_string);
+        (target_string.clone(), format!("a[title*='{}']", target_string))
+    };
+    
+    let mut target_string = get_date_css_selector(Local::now().date_naive());
 
     // target element:
-    let target_element = driver.find(By::Css(target_css_selector)).await?;
+    let target_element = match driver.find(By::Css(target_string.1)).await {
+        Ok(e) => e,
+        Err(_) => {
+            target_string = get_date_css_selector(Local::now().date_naive().checked_sub_days(Days::new(1)).unwrap());
+            match driver.find(By::Css(target_string.1)).await {
+                Ok(e) => e,
+                Err(_) => {
+                    eprintln!("=> Failed to find the target post.");
+                    return Err(WebDriverError::UnknownError(WebDriverErrorInfo::new("Failed to find the target post.".to_string())));
+                }
+            }
+        }
+    };
     target_element.click().await?;
     sleep(Duration::from_secs(wait_time)).await;
 
@@ -122,7 +134,7 @@ async fn main() -> Result<(), WebDriverError> {
     println!("=> Successfully went to the 回复页面.");
 
     let reply_input = driver.find(By::Css("#cke_1_contents > div")).await?;
-    let reply_content = format!("签到喵~{}", target_string);
+    let reply_content = format!("签到喵~{}", target_string.0);
     reply_input.send_keys(reply_content).await?;
     println!("=> Successfully 输入回复信息.");
 
@@ -141,23 +153,18 @@ async fn main() -> Result<(), WebDriverError> {
 
     // output JieCao
     let profile_url_result = env::var("SSTM_PROFILE_URL");
-    let updated_jiecao = if profile_url_result.is_ok() {
+    if profile_url_result.is_ok() {
         let profile_url = profile_url_result.unwrap();
         let _ = goto_url!(profile_url.as_str());
         let jiecao_element = driver.find(By::Css("#elProfileInfoColumn > div > div:nth-child(4) > div > ul > li:nth-child(1) > span.ipsDataItem_main")).await?;
         let jiecao_text = jiecao_element.text().await?;
         // 去除text末尾的" J"
-        let jiecao_text = jiecao_text.trim_end_matches(" J");
+        let jiecao_text = jiecao_text.trim_end_matches(" J").replace(",", "");
         let jiecao = jiecao_text.parse::<f32>().unwrap_or(-1.0);
-        jiecao
-    } else {
-        -1.0
-    };
-    if updated_jiecao >= 0.0 {
-        println!("=> 节操从 {} 变为 {}.", current_jiecao, updated_jiecao);
+        println!("=> 节操从 {} 变为 {}.", current_jiecao, jiecao);
     } else {
         println!("=> 没有设置SSTM_PROFILE_URL，无法获取当前节操。");
-    }
+    };
 
     // 3. end
     sleep(Duration::from_secs(5)).await;
